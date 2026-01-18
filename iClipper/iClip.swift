@@ -111,15 +111,17 @@ class iClip: NSObject, NSApplicationDelegate {
             HStack(spacing: 12) {
                 TextField("Search in clipboard history...", text: $query)
                     .focused($isFocused)
+                    .textFieldStyle(.plain)
+                    .padding(.leading, 14)
             }
-            .frame(width: 320, height: 100)
+            .frame(width: 320, height: 80)
             .background(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: 16)
                     .fill(.ultraThinMaterial)
-                    .cornerRadius(16)
+                    .border(Color.accentColor, width: 1)
+                    .cornerRadius(8)
             )
-            .padding()
-            .onAppear{
+            .onAppear {
                 DispatchQueue.main.async {
                     isFocused = true
                 }
