@@ -105,10 +105,12 @@ class iClip: NSObject, NSApplicationDelegate {
     struct ClipWindow: View {
         
         @State private var query = ""
+        @FocusState private var isFocused: Bool
         
         var body: some View {
             HStack(spacing: 12) {
                 TextField("Search in clipboard history...", text: $query)
+                    .focused($isFocused)
             }
             .frame(width: 320, height: 100)
             .background(
@@ -116,6 +118,12 @@ class iClip: NSObject, NSApplicationDelegate {
                     .fill(.ultraThinMaterial)
                     .cornerRadius(16)
             )
+            .padding()
+            .onAppear{
+                DispatchQueue.main.async {
+                    isFocused = true
+                }
+            }
         }
     }
 }
