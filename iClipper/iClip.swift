@@ -1,5 +1,6 @@
 import SwiftUI
 import CoreData
+import AppKit
 
 @MainActor
 
@@ -20,6 +21,8 @@ class iClip: NSObject, NSApplicationDelegate {
         
         overlayWindow.forEach{ $0.close() }
         overlayWindow.removeAll()
+        
+        var cData = self.CData()
         
         let windowSize = NSSize(width: 320, height: 100)
         
@@ -47,7 +50,11 @@ class iClip: NSObject, NSApplicationDelegate {
         window.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary]
         window.makeKeyAndOrderFront(nil)
         window.contentView = NSHostingView(
-            rootView: ClipWindow()
+            rootView: VStack {
+                SearchWindow()
+                    .padding()
+                SearchResult(ClipboardData: cData)
+            }
         )
         
         overlayWindow.append(window)
@@ -102,7 +109,14 @@ class iClip: NSObject, NSApplicationDelegate {
         }
     }
     
-    struct ClipWindow: View {
+    func CData() -> String? {
+        let pasteBoard = NSPasteboard.general
+        return pasteBoard.string(forType: .string)
+    }
+    
+    
+//    UI
+    struct SearchWindow: View {
         
         @State private var query = ""
         @FocusState private var isFocused: Bool
@@ -114,11 +128,11 @@ class iClip: NSObject, NSApplicationDelegate {
                     .textFieldStyle(.plain)
                     .padding(.leading, 14)
             }
-            .frame(width: 320, height: 80)
+            .frame(width: 320, height: 50)
             .background(
                 RoundedRectangle(cornerRadius: 16)
                     .fill(.ultraThinMaterial)
-                    .border(Color.accentColor, width: 1)
+                    .border(Color.accentColor, width: 0.5)
                     .cornerRadius(8)
             )
             .onAppear {
@@ -126,6 +140,25 @@ class iClip: NSObject, NSApplicationDelegate {
                     isFocused = true
                 }
             }
+        }
+    }
+    
+    struct SearchResult: View {
+        
+        var ClipboardData: String?
+        
+        var body: some View {
+            HStack(spacing: 12) {
+                Text(ClipboardData ?? "")
+                    .padding(.leading, 14)
+            }
+            .frame(width: 320, height: 50)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(.ultraThinMaterial)
+                    .border(Color.accentColor, width: 0.5)
+                    .cornerRadius(8)
+            )
         }
     }
 }
