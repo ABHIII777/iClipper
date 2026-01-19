@@ -1,6 +1,7 @@
 import SwiftUI
 import CoreData
 import AppKit
+import Combine
 
 @MainActor
 
@@ -11,18 +12,47 @@ class iClip: NSObject, NSApplicationDelegate {
         override var canBecomeMain: Bool { true }
     }
     
+    final class ClipboardStore: ObservableObject {
+        @Published var history: [String] = []
+        
+        private var lastChange = NSPasteboard.general.changeCount
+        private var timer: Timer?
+        
+        init() {
+            start()
+        }
+        
+        func start() {
+            timer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: true) { _ in
+                let pb = NSPasteboard.general
+                
+                if pb.changeCount != self.lastChange {
+                    self.lastChange = pb.changeCount
+                    
+                    if let str = pb.string(forType: .string) {
+                        DispatchQueue.main.async {
+                            if self.history.first != str {
+                                self.history.insert(str, at: 0)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
     var overlayWindow: [NSWindow] = []
     var wasHotKeyPressed = false
     
     var globalEventMonitor: Any?
     var localEventMonitor: Any?
     
+    let clipboardStore = ClipboardStore()
+    
     func createOverlay() {
         
         overlayWindow.forEach{ $0.close() }
         overlayWindow.removeAll()
-        
-        var cData = self.CData()
         
         let windowSize = NSSize(width: 320, height: 100)
         
@@ -53,7 +83,7 @@ class iClip: NSObject, NSApplicationDelegate {
             rootView: VStack {
                 SearchWindow()
                     .padding()
-                SearchResult(ClipboardData: cData)
+                SearchResult(ClipboardData: clipboardStore)
             }
         )
         
@@ -145,20 +175,21 @@ class iClip: NSObject, NSApplicationDelegate {
     
     struct SearchResult: View {
         
-        var ClipboardData: String?
+        @ObservedObject var ClipboardData: ClipboardStore
         
         var body: some View {
-            HStack(spacing: 12) {
-                Text(ClipboardData ?? "")
-                    .padding(.leading, 14)
+            VStack (spacing: 8) {
+                ForEach(ClipboardData.history.prefix(5), id: \.self) { item in
+                    Text(item)
+                        .lineLimit(1)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(8)
+                        .background(.ultraThinMaterial)
+                        .cornerRadius(8)
+                }
             }
-            .frame(width: 320, height: 50)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(.ultraThinMaterial)
-                    .border(Color.accentColor, width: 0.5)
-                    .cornerRadius(8)
-            )
+            
+            .frame(width: 320)
         }
     }
 }
