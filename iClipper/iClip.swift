@@ -80,11 +80,12 @@ class iClip: NSObject, NSApplicationDelegate {
         window.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary]
         window.makeKeyAndOrderFront(nil)
         window.contentView = NSHostingView(
-            rootView: VStack {
-                SearchWindow()
-                    .padding()
-                SearchResult(ClipboardData: clipboardStore)
-            }
+//            rootView: VStack {
+//                SearchWindow()
+//                    .padding()
+//                SearchResult(ClipboardData: clipboardStore)
+//            }
+            rootView: CombinedSearchView(data: clipboardStore.history)
         )
         
         overlayWindow.append(window)
@@ -139,16 +140,11 @@ class iClip: NSObject, NSApplicationDelegate {
         }
     }
     
-    func CData() -> String? {
-        let pasteBoard = NSPasteboard.general
-        return pasteBoard.string(forType: .string)
-    }
-    
     
 //    UI
     struct SearchWindow: View {
         
-        @State private var query = ""
+        @Binding var query: String
         @FocusState private var isFocused: Bool
         
         var body: some View {
@@ -175,21 +171,64 @@ class iClip: NSObject, NSApplicationDelegate {
     
     struct SearchResult: View {
         
-        @ObservedObject var ClipboardData: ClipboardStore
+//        @ObservedObject var ClipboardData: ClipboardStore
+//        
+//        var body: some View {
+//            VStack (spacing: 8) {
+//                ForEach(ClipboardData.history.prefix(5), id: \.self) { item in
+//                    Text(item)
+//                        .lineLimit(2)
+//                        .frame(maxWidth: .infinity, alignment: .leading)
+//                        .padding(8)
+//                        .background(
+//                            RoundedRectangle(cornerRadius: 16)
+//                                .fill(.ultraThinMaterial)
+//                                .border(Color.accentColor, width: 0.5)
+//                                .cornerRadius(8)
+//                        )
+//                        .cornerRadius(8)
+//                }
+//            }
+//            
+//            .frame(width: 320)
+//        }
+        let items: [String]
         
         var body: some View {
-            VStack (spacing: 8) {
-                ForEach(ClipboardData.history.prefix(5), id: \.self) { item in
+            VStack(spacing: 8) {
+                ForEach(items, id: \.self) { item in
                     Text(item)
                         .lineLimit(1)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(8)
-                        .background(.ultraThinMaterial)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(.ultraThinMaterial)
+                                .border(Color.accentColor, width: 0.5)
+                                .cornerRadius(8)
+                        )
                         .cornerRadius(8)
                 }
             }
-            
-            .frame(width: 320)
+        }
+    }
+    
+    struct CombinedSearchView: View {
+        @State private var query = ""
+        
+        let data: [String]
+        
+        var filteredData: [String] {
+            query.isEmpty ? data : data.filter{$0.localizedCaseInsensitiveContains(query)}
+        }
+        
+        var body: some View {
+            VStack(spacing: 8) {
+                SearchWindow(query: $query)
+                SearchResult(items: filteredData)
+            }
+            .padding()
+            .frame(width: 320, height: 200)
         }
     }
 }
