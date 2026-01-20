@@ -14,6 +14,7 @@ class iClip: NSObject, NSApplicationDelegate {
     
     final class ClipboardStore: ObservableObject {
         @Published var history: [String] = []
+        @Published var selectedIndex: Int = 0
         
         private var lastChange = NSPasteboard.general.changeCount
         private var timer: Timer?
@@ -41,6 +42,7 @@ class iClip: NSObject, NSApplicationDelegate {
             }
         }
     }
+
     
     var overlayWindow: NSWindow?
     var wasHotKeyPressed = false
@@ -159,7 +161,8 @@ class iClip: NSObject, NSApplicationDelegate {
         let count = clipboardStore.history.count
         guard count > 0 else { return }
         
-        selectedIndex = (selectedIndex + delta + count) % count
+//        selectedIndex = (selectedIndex + delta + count) % count
+        clipboardStore.selectedIndex = (clipboardStore.selectedIndex + delta + count) % count
     }
     
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -269,7 +272,7 @@ class iClip: NSObject, NSApplicationDelegate {
 
                 
                 VStack(spacing: 0) {
-                    ForEach(filteredData, id: \.self) { item in
+                    ForEach(Array(filteredData.enumerated()), id: \.offset) { index, item in
                         HStack {
                             Text(item)
                                 .font(.system(size: 13))
@@ -282,8 +285,9 @@ class iClip: NSObject, NSApplicationDelegate {
                         .padding(.vertical, 8)
                         .contentShape(Rectangle())
                         .background(
-                            Color.white.opacity(0.03)
-                                .opacity(0.0001)
+                            index == store.selectedIndex
+                            ? Color.accentColor.opacity(0.2)
+                            : Color.clear
                         )
 
                         Divider()
@@ -297,10 +301,6 @@ class iClip: NSObject, NSApplicationDelegate {
             .background(
                 RoundedRectangle(cornerRadius: 14)
                     .fill(.ultraThinMaterial)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    .stroke(Color.white.opacity(0.1))
             )
         }
     }
