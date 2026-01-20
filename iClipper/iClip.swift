@@ -80,11 +80,6 @@ class iClip: NSObject, NSApplicationDelegate {
         window.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary]
         window.makeKeyAndOrderFront(nil)
         window.contentView = NSHostingView(
-//            rootView: VStack {
-//                SearchWindow()
-//                    .padding()
-//                SearchResult(ClipboardData: clipboardStore)
-//            }
             rootView: CombinedSearchView(data: clipboardStore.history)
         )
         
@@ -156,7 +151,7 @@ class iClip: NSObject, NSApplicationDelegate {
             }
             .frame(width: 320, height: 50)
             .background(
-                RoundedRectangle(cornerRadius: 16)
+                RoundedRectangle(cornerRadius: 0)
                     .fill(.ultraThinMaterial)
                     .border(Color.accentColor, width: 0.5)
                     .cornerRadius(8)
@@ -171,64 +166,101 @@ class iClip: NSObject, NSApplicationDelegate {
     
     struct SearchResult: View {
         
-//        @ObservedObject var ClipboardData: ClipboardStore
-//        
-//        var body: some View {
-//            VStack (spacing: 8) {
-//                ForEach(ClipboardData.history.prefix(5), id: \.self) { item in
-//                    Text(item)
-//                        .lineLimit(2)
-//                        .frame(maxWidth: .infinity, alignment: .leading)
-//                        .padding(8)
-//                        .background(
-//                            RoundedRectangle(cornerRadius: 16)
-//                                .fill(.ultraThinMaterial)
-//                                .border(Color.accentColor, width: 0.5)
-//                                .cornerRadius(8)
-//                        )
-//                        .cornerRadius(8)
-//                }
-//            }
-//            
-//            .frame(width: 320)
-//        }
         let items: [String]
         
         var body: some View {
-            VStack(spacing: 8) {
-                ForEach(items, id: \.self) { item in
-                    Text(item)
-                        .lineLimit(1)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(8)
-                        .background(
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(.ultraThinMaterial)
-                                .border(Color.accentColor, width: 0.5)
-                                .cornerRadius(8)
-                        )
-                        .cornerRadius(8)
+            ScrollView {
+                VStack(spacing: 8) {
+                    ForEach(items, id: \.self) { item in
+                        Text(item)
+                            .lineLimit(1)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(8)
+                            .background(
+                                RoundedRectangle(cornerRadius: 0)
+                                    .fill(.ultraThinMaterial)
+                                    .border(Color.accentColor, width: 0.5)
+                                    .cornerRadius(8)
+                            )
+                            .cornerRadius(8)
+                    }
                 }
+                .padding()
             }
         }
     }
     
     struct CombinedSearchView: View {
         @State private var query = ""
+        @FocusState private var isFocused: Bool
         
         let data: [String]
-        
+
         var filteredData: [String] {
-            query.isEmpty ? data : data.filter{$0.localizedCaseInsensitiveContains(query)}
+            query.isEmpty
+            ? data
+            : data.filter { $0.localizedCaseInsensitiveContains(query) }
         }
-        
+
         var body: some View {
-            VStack(spacing: 8) {
-                SearchWindow(query: $query)
-                SearchResult(items: filteredData)
+            VStack(spacing: 12) {
+                
+                HStack(spacing: 10) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(.secondary)
+
+                    TextField("Search in clipboard history…", text: $query)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 15, weight: .medium))
+                        .focused($isFocused)
+                }
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color.white.opacity(0.06))
+                )
+                .onAppear {
+                    DispatchQueue.main.async {
+                        isFocused = true
+                    }
+                }
+
+                
+                VStack(spacing: 0) {
+                    ForEach(filteredData, id: \.self) { item in
+                        HStack {
+                            Text(item)
+                                .font(.system(size: 13))
+                                .foregroundStyle(.primary)
+                                .lineLimit(1)
+
+                            Spacer()
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .contentShape(Rectangle())
+                        .background(
+                            Color.white.opacity(0.03)
+                                .opacity(0.0001)
+                        )
+
+                        Divider()
+                            .opacity(0.15)
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 10))
             }
-            .padding()
-            .frame(width: 320, height: 200)
+            .padding(14)
+            .frame(width: 360)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(.ultraThinMaterial)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(Color.white.opacity(0.1))
+            )
         }
     }
+
 }
