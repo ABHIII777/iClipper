@@ -33,7 +33,10 @@ class iClip: NSObject, NSApplicationDelegate {
                     
                     if let str = pb.string(forType: .string) {
                         DispatchQueue.main.async {
-                            if self.history.first != str {
+                            if let existingIndex = self.history.firstIndex(of: str) {
+                                self.history.remove(at: existingIndex)
+                                self.history.insert(str, at: 0)
+                            } else {
                                 self.history.insert(str, at: 0)
                             }
                         }
@@ -280,8 +283,17 @@ class iClip: NSObject, NSApplicationDelegate {
                                 .textSelection(.enabled)
 
                             Spacer()
-                            Image(systemName: "doc.on.doc")
-                                .foregroundStyle(.secondary)
+                            
+                            Button {
+                                let pb = NSPasteboard.general
+                                pb.clearContents()
+                                pb.setString(item, forType: .string)
+                            } label: {
+                                Image(systemName: "doc.on.doc")
+                                    .foregroundStyle(.secondary)
+                            }
+                            .buttonStyle(.plain)
+
                         }
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
