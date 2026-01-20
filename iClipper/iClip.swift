@@ -23,7 +23,8 @@ class iClip: NSObject, NSApplicationDelegate {
         }
         
         func start() {
-            timer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: true) { _ in
+            timer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: true) { [weak self] _ in
+                guard let self else { return }
                 let pb = NSPasteboard.general
                 
                 if pb.changeCount != self.lastChange {
@@ -41,20 +42,22 @@ class iClip: NSObject, NSApplicationDelegate {
         }
     }
     
-    var overlayWindow: [NSWindow] = []
+    var overlayWindow: NSWindow?
     var wasHotKeyPressed = false
     
     var globalEventMonitor: Any?
     var localEventMonitor: Any?
+    var navigationMonitor: Any?
+    
+    var selectedIndex: Int = 0
     
     let clipboardStore = ClipboardStore()
     
     func createOverlay() {
+        overlayWindow?.close()
+        overlayWindow = nil
         
-        overlayWindow.forEach{ $0.close() }
-        overlayWindow.removeAll()
-        
-        let windowSize = NSSize(width: 320, height: 100)
+        let windowSize = NSSize(width: 360, height: 420)
         
         guard let screen = NSScreen.main else { return }
         let screenFrame = screen.visibleFrame
@@ -80,21 +83,26 @@ class iClip: NSObject, NSApplicationDelegate {
         window.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary]
         window.makeKeyAndOrderFront(nil)
         window.contentView = NSHostingView(
-            rootView: CombinedSearchView(data: clipboardStore.history)
+            rootView: CombinedSearchView(
+                store: clipboardStore
+            )
         )
         
-        overlayWindow.append(window)
+        window.makeKeyAndOrderFront(nil)
+        overlayWindow = window
     }
     
     func toggleOverlay() {
-        if self.overlayWindow.contains(where: {$0.isVisible}) {
-            self.overlayWindow.forEach{ $0.orderOut(nil) }
+        if self.overlayWindow?.isVisible == true {
+            overlayWindow?.orderOut(nil)
+            stopNavigation()
             return
         }
         
-        self.createOverlay()
-        self.overlayWindow.forEach{ $0.makeKeyAndOrderFront(nil) }
+        createOverlay()
         NSApp.activate(ignoringOtherApps: true)
+        
+        startNavigation()
     }
     
     func setUpHotKey() {
@@ -117,6 +125,41 @@ class iClip: NSObject, NSApplicationDelegate {
         }
         
         wasHotKeyPressed = isHotKeyPressed
+    }
+    
+    func startNavigation() {
+        stopNavigation()
+        
+        navigationMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self else { return event }
+            
+            switch event.keyCode {
+            case 125:
+                self.moveSelection(+1)
+                return nil
+                
+            case 126:
+                self.moveSelection(-1)
+                return nil
+                
+            default:
+                return event
+            }
+        }
+    }
+    
+    func stopNavigation() {
+        if let monitor = navigationMonitor{
+            NSEvent.removeMonitor(monitor)
+            navigationMonitor = nil
+        }
+    }
+    
+    func moveSelection(_ delta: Int) {
+        let count = clipboardStore.history.count
+        guard count > 0 else { return }
+        
+        selectedIndex = (selectedIndex + delta + count) % count
     }
     
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -193,13 +236,12 @@ class iClip: NSObject, NSApplicationDelegate {
     struct CombinedSearchView: View {
         @State private var query = ""
         @FocusState private var isFocused: Bool
+        @ObservedObject var store: ClipboardStore
         
-        let data: [String]
-
         var filteredData: [String] {
             query.isEmpty
-            ? data
-            : data.filter { $0.localizedCaseInsensitiveContains(query) }
+            ? store.history
+            : store.history.filter { $0.localizedCaseInsensitiveContains(query) }
         }
 
         var body: some View {
