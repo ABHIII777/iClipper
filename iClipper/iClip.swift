@@ -161,7 +161,6 @@ class iClip: NSObject, NSApplicationDelegate {
         let count = clipboardStore.history.count
         guard count > 0 else { return }
         
-//        selectedIndex = (selectedIndex + delta + count) % count
         clipboardStore.selectedIndex = (clipboardStore.selectedIndex + delta + count) % count
     }
     
@@ -278,8 +277,11 @@ class iClip: NSObject, NSApplicationDelegate {
                                 .font(.system(size: 13))
                                 .foregroundStyle(.primary)
                                 .lineLimit(1)
+                                .textSelection(.enabled)
 
                             Spacer()
+                            Image(systemName: "doc.on.doc")
+                                .foregroundStyle(.secondary)
                         }
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
